@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: my-dify
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MY_DIFY_MODEL_BASE_URL
+        value: https://api.deepseek.com
+      - key: MY_DIFY_MODEL_API_KEY
+        sync: false
+      - key: MY_DIFY_MODEL_NAME
+        value: deepseek-chat
+      - key: MY_DIFY_MODEL_TIMEOUT
+        value: "60"
+      - key: MY_DIFY_DATABASE_URL
+        value: sqlite:////tmp/my_dify.db

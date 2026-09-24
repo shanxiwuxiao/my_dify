@@ -1,6 +1,8 @@
 """Flask application factory."""
 
-from flask import Flask
+from pathlib import Path
+
+from flask import Flask, abort, send_from_directory
 
 from .commands.database import init_db_command
 from .configs.settings import Settings
@@ -49,7 +51,10 @@ def create_app(
         resolved_chat_service,
     )
 
-    app = Flask(__name__)
+    # Vue is compiled to ``web/dist`` during the production image build.  Flask
+    # serves those files so the browser and API share one origin in production.
+    web_dist = Path(__file__).resolve().parents[2] / "web" / "dist"
+    app = Flask(__name__, static_folder=None)
 
     app.config["SQLALCHEMY_DATABASE_URI"] = resolved_settings.database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -66,4 +71,19 @@ def create_app(
     app.register_blueprint(conversations_bp)
     app.register_blueprint(conversation_chat_bp)
     app.cli.add_command(init_db_command)
+
+    @app.get("/")
+    @app.get("/<path:path>")
+    def serve_frontend(path: str = ""):
+        """Serve Vue assets and fall back to index.html for Vue Router."""
+        if path.startswith("api/"):
+            abort(404)
+
+        requested_file = web_dist / path
+        if path and requested_file.is_file():
+            return send_from_directory(web_dist, path)
+        if (web_dist / "index.html").is_file():
+            return send_from_directory(web_dist, "index.html")
+        abort(404)
+
     return app
