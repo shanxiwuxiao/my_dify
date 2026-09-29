@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+api/instance/*.db
 
 # Environment and secrets
 .env
@@ -12,3 +13,4 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+api/instance/my_dify.db

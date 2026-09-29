@@ -2,7 +2,8 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Any
 
 
 class MessageResponse(BaseModel):
@@ -19,3 +20,4 @@ class MessageResponse(BaseModel):
 class ConversationChatResponse(BaseModel):
     conversation_id: str
     message: MessageResponse
+    sources: list[dict[str, Any]] = Field(default_factory=list)

@@ -1,6 +1,7 @@
 """Chat HTTP endpoints."""
 
 import json
+from types import SimpleNamespace
 from collections.abc import Iterator
 from typing import Any
 
@@ -42,7 +43,9 @@ def chat():
     except ValidationError:
         return invalid_request()
 
-    chat_service: ChatService = current_app.extensions["chat_service"]
+    chat_service = current_app.extensions["model_runtime_service"].for_config(
+        SimpleNamespace(provider_id=None, id=None)
+    )
     try:
         answer = chat_service.chat(chat_request.message)
     except ModelError:
@@ -69,7 +72,9 @@ def stream_chat():
     except ValidationError:
         return invalid_request()
 
-    chat_service: ChatService = current_app.extensions["chat_service"]
+    chat_service = current_app.extensions["model_runtime_service"].for_config(
+        SimpleNamespace(provider_id=None, id=None)
+    )
     logger = current_app.logger
 
     def generate_events() -> Iterator[str]:

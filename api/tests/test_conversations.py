@@ -76,6 +76,44 @@ def test_get_missing_conversation_returns_404(client: FlaskClient) -> None:
     assert response.get_json()["code"] == "conversation_not_found"
 
 
+def test_rename_conversation(client: FlaskClient) -> None:
+    application = create_application(client)
+    conversation = create_conversation(client, application["id"])
+
+    response = client.patch(
+        f"/api/conversations/{conversation['id']}",
+        json={"name": "  新名称  "},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["name"] == "新名称"
+    saved = client.get(f"/api/conversations/{conversation['id']}").get_json()
+    assert saved["name"] == "新名称"
+
+
+def test_rename_conversation_rejects_invalid_name(client: FlaskClient) -> None:
+    application = create_application(client)
+    conversation = create_conversation(client, application["id"])
+
+    response = client.patch(
+        f"/api/conversations/{conversation['id']}",
+        json={"name": "   "},
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()["code"] == "invalid_request"
+
+
+def test_rename_missing_conversation_returns_404(client: FlaskClient) -> None:
+    response = client.patch(
+        "/api/conversations/missing",
+        json={"name": "新名称"},
+    )
+
+    assert response.status_code == 404
+    assert response.get_json()["code"] == "conversation_not_found"
+
+
 def test_delete_conversation(client: FlaskClient) -> None:
     application = create_application(client)
     conversation = create_conversation(client, application["id"])

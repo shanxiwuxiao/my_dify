@@ -10,6 +10,7 @@ from ..core.model_runtime.exceptions import ModelError
 from ..schemas.chat import ChatRequest, ChatResponse
 from ..services.app_service import AppService
 from ..services.chat_service import ChatService
+from ..services.model_runtime_service import ModelRuntimeService
 from ..services.exceptions import AppNotFoundError
 from .chat import format_sse, invalid_request
 
@@ -40,9 +41,10 @@ def chat_with_application(app_id: str):
         return invalid_request("Invalid request")
 
     app_service: AppService = current_app.extensions["app_service"]
-    chat_service: ChatService = current_app.extensions["chat_service"]
+    runtime: ModelRuntimeService = current_app.extensions["model_runtime_service"]
     try:
         app = app_service.get_app(app_id)
+        chat_service = runtime.for_config(app)
         answer = chat_service.chat(
             chat_request.message,
             system_prompt=app.system_prompt,
@@ -65,9 +67,10 @@ def stream_chat_with_application(app_id: str):
         return invalid_request("Invalid request")
 
     app_service: AppService = current_app.extensions["app_service"]
-    chat_service: ChatService = current_app.extensions["chat_service"]
+    runtime: ModelRuntimeService = current_app.extensions["model_runtime_service"]
     try:
         app = app_service.get_app(app_id)
+        chat_service = runtime.for_config(app)
     except AppNotFoundError:
         return _app_not_found()
 

@@ -11,12 +11,12 @@ class AppRepository:
         db.session.refresh(app)
         return app
 
-    def list_all(self) -> list[AppModel]:
-        statement = db.select(AppModel).order_by(AppModel.created_at.desc())
+    def list_all(self, owner_id: str) -> list[AppModel]:
+        statement = db.select(AppModel).where(AppModel.owner_id == owner_id).order_by(AppModel.created_at.desc())
         return list(db.session.execute(statement).scalars())
 
-    def get_by_id(self, app_id: str) -> AppModel | None:
-        return db.session.get(AppModel, app_id)
+    def get_by_id(self, app_id: str, owner_id: str) -> AppModel | None:
+        return db.session.execute(db.select(AppModel).where(AppModel.id == app_id, AppModel.owner_id == owner_id)).scalar_one_or_none()
 
     def save(self, app: AppModel) -> AppModel:
         db.session.commit()

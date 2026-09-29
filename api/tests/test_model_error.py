@@ -4,6 +4,8 @@ from my_dify import create_app
 from my_dify.core.model_runtime.base import ModelMessage
 from my_dify.core.model_runtime.exceptions import ModelRequestError
 from my_dify.services.chat_service import ChatService
+from my_dify.configs.settings import Settings
+from my_dify.extensions.database import db
 
 
 class FailingModelClient:
@@ -28,10 +30,13 @@ class FailingModelClient:
 
 
 def test_chat_hides_model_error_details() -> None:
-    app = create_app(chat_service=ChatService(FailingModelClient()))
+    app = create_app(settings=Settings(database_url="sqlite:///:memory:", _env_file=None), chat_service=ChatService(FailingModelClient()))
     app.config.update(TESTING=True)
+    with app.app_context():
+        db.create_all()
 
     with app.test_client() as client:
+        client.post("/api/auth/register", json={"email": "error@example.com", "password": "password123"})
         response = client.post("/api/chat", json={"message": "你好"})
 
     assert response.status_code == 502
@@ -42,10 +47,13 @@ def test_chat_hides_model_error_details() -> None:
 
 
 def test_stream_chat_hides_model_error_details() -> None:
-    app = create_app(chat_service=ChatService(FailingModelClient()))
+    app = create_app(settings=Settings(database_url="sqlite:///:memory:", _env_file=None), chat_service=ChatService(FailingModelClient()))
     app.config.update(TESTING=True)
+    with app.app_context():
+        db.create_all()
 
     with app.test_client() as client:
+        client.post("/api/auth/register", json={"email": "stream@example.com", "password": "password123"})
         response = client.post("/api/chat/stream", json={"message": "你好"})
         body = response.get_data(as_text=True)
 

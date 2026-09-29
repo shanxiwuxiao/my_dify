@@ -13,7 +13,12 @@ export class ApiRequestError extends Error {
 }
 
 export async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, { ...options, headers: { ...(options?.body ? { 'Content-Type': 'application/json' } : {}), ...options?.headers } })
+  const response = await fetch(url, {
+    ...options, headers: {
+      ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options?.headers,
+    },
+  })
   if (!response.ok) {
     const body = await response.json().catch(() => null) as ApiError | null
     throw new ApiRequestError(body?.message ?? `请求失败 (${response.status})`, response.status, body?.code)

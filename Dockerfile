@@ -22,7 +22,8 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY api/ ./api/
+COPY migrations/ ./migrations/
 COPY --from=frontend /app/web/dist ./web/dist/
 
 EXPOSE 10000
-CMD ["sh", "-c", "flask --app my_dify:create_app init-db && gunicorn 'my_dify:create_app()' --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 120"]
+CMD ["sh", "-c", "flask --app my_dify:create_app db upgrade && gunicorn 'my_dify:create_app()' --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 120"]

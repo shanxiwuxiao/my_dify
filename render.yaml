@@ -14,4 +14,16 @@ services:
       - key: MY_DIFY_MODEL_TIMEOUT
         value: "60"
       - key: MY_DIFY_DATABASE_URL
-        value: sqlite:////tmp/my_dify.db
+        fromDatabase:
+          name: my-dify-db
+          property: connectionString
+      - key: MY_DIFY_SECRET_KEY
+        generateValue: true
+      - key: MY_DIFY_SESSION_COOKIE_SECURE
+        value: "true"
+
+databases:
+  - name: my-dify-db
+    plan: free
+    databaseName: my_dify
+    user: my_dify

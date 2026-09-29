@@ -199,6 +199,7 @@ def test_model_error_keeps_user_message_without_assistant(
     failing_app: Flask,
 ) -> None:
     client = failing_app.test_client()
+    client.post("/api/auth/register", json={"email": "failure@example.com", "password": "password123"})
     conversation = create_conversation(client)
 
     response = client.post(
@@ -220,6 +221,7 @@ def test_stream_model_error_emits_error_without_done(
     failing_app: Flask,
 ) -> None:
     client = failing_app.test_client()
+    client.post("/api/auth/register", json={"email": "stream-failure@example.com", "password": "password123"})
     conversation = create_conversation(client)
 
     response = client.post(

@@ -1,5 +1,6 @@
-export interface StreamHandlers { onMessage: (delta: string) => void; onDone: () => void; onError: (message: string) => void }
-interface SsePayload { delta?: string; message?: string }
+import type { KnowledgeSource } from '../types/api'
+export interface StreamHandlers { onMessage: (delta: string) => void; onDone: () => void; onError: (message: string) => void; onSources?: (items: KnowledgeSource[]) => void }
+interface SsePayload { delta?: string; message?: string; items?: KnowledgeSource[] }
 
 function dispatchFrame(frame: string, handlers: StreamHandlers) {
   let event = 'message'
@@ -15,6 +16,7 @@ function dispatchFrame(frame: string, handlers: StreamHandlers) {
   if (event === 'message') handlers.onMessage(payload.delta ?? '')
   else if (event === 'done') handlers.onDone()
   else if (event === 'error') handlers.onError(payload.message ?? '模型请求失败')
+  else if (event === 'sources') handlers.onSources?.(payload.items ?? [])
 }
 
 export async function streamConversationMessage(conversationId: string, message: string, handlers: StreamHandlers, signal?: AbortSignal) {

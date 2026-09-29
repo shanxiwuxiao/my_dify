@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from ..extensions.database import db
 from ..models.conversation import ConversationModel
+from ..models.app import AppModel
 
 
 class ConversationRepository:
@@ -21,10 +22,25 @@ class ConversationRepository:
         )
         return list(db.session.execute(statement).scalars())
 
-    def get_by_id(self, conversation_id: str) -> ConversationModel | None:
-        return db.session.get(ConversationModel, conversation_id)
+    def get_by_id(self, conversation_id: str, owner_id: str) -> ConversationModel | None:
+        statement = db.select(ConversationModel).join(AppModel).where(
+            ConversationModel.id == conversation_id,
+            AppModel.owner_id == owner_id,
+        )
+        return db.session.execute(statement).scalar_one_or_none()
 
     def touch(self, conversation: ConversationModel) -> ConversationModel:
+        conversation.updated_at = datetime.now(timezone.utc)
+        db.session.commit()
+        db.session.refresh(conversation)
+        return conversation
+
+    def update_name(
+        self,
+        conversation: ConversationModel,
+        name: str,
+    ) -> ConversationModel:
+        conversation.name = name
         conversation.updated_at = datetime.now(timezone.utc)
         db.session.commit()
         db.session.refresh(conversation)

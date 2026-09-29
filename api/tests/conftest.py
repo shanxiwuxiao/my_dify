@@ -73,4 +73,10 @@ def app(model_client: FakeModelClient) -> Flask:
 
 @pytest.fixture()
 def client(app: Flask) -> FlaskClient:
-    return app.test_client()
+    client = app.test_client()
+    response = client.post(
+        "/api/auth/register",
+        json={"email": "test@example.com", "password": "password123"},
+    )
+    assert response.status_code == 201
+    return client

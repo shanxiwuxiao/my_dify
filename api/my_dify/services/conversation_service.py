@@ -24,13 +24,24 @@ class ConversationService:
         return self._repository.list_by_app_id(app_id)
 
     def get_conversation(self, conversation_id: str) -> ConversationModel:
-        conversation = self._repository.get_by_id(conversation_id)
+        conversation = self._repository.get_by_id(
+            conversation_id,
+            self._app_service._owner_id(),
+        )
         if conversation is None:
             raise ConversationNotFoundError(conversation_id)
         return conversation
 
     def touch_conversation(self, conversation: ConversationModel) -> ConversationModel:
         return self._repository.touch(conversation)
+
+    def rename_conversation(
+        self,
+        conversation_id: str,
+        name: str,
+    ) -> ConversationModel:
+        conversation = self.get_conversation(conversation_id)
+        return self._repository.update_name(conversation, name)
 
     def delete_conversation(self, conversation_id: str) -> None:
         conversation = self.get_conversation(conversation_id)

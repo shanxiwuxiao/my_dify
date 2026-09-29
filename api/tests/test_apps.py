@@ -137,6 +137,23 @@ def test_delete_missing_application_returns_404(client: FlaskClient) -> None:
     assert response.status_code == 404
 
 
+def test_publish_creates_immutable_incrementing_versions(client: FlaskClient) -> None:
+    created = create_application(client, system_prompt="version one") .get_json()
+
+    first = client.post(f"/api/apps/{created['id']}/publish")
+    assert first.status_code == 201
+    assert first.get_json()["version"] == 1
+    assert first.get_json()["system_prompt"] == "version one"
+
+    client.patch(f"/api/apps/{created['id']}", json={"system_prompt": "version two"})
+    second = client.post(f"/api/apps/{created['id']}/publish")
+    versions = client.get(f"/api/apps/{created['id']}/versions").get_json()["items"]
+
+    assert second.get_json()["version"] == 2
+    assert [item["version"] for item in versions] == [2, 1]
+    assert versions[1]["system_prompt"] == "version one"
+
+
 def test_create_application_rejects_non_json_request(client: FlaskClient) -> None:
     response = client.post("/api/apps", data="hello", content_type="text/plain")
 

@@ -74,6 +74,7 @@ def create_message(conversation_id: str):
     response = ConversationChatResponse(
         conversation_id=conversation_id,
         message=MessageResponse.model_validate(assistant_message),
+        sources=prepared.sources or [],
     )
     return jsonify(response.model_dump(mode="json"))
 
@@ -94,6 +95,8 @@ def stream_message(conversation_id: str):
 
     def generate_events() -> Iterator[str]:
         try:
+            if prepared.sources:
+                yield format_sse("sources", {"items": prepared.sources})
             for delta in service.stream(prepared):
                 yield format_sse("message", {"delta": delta})
         except ModelError:

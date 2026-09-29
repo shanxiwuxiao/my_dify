@@ -6,7 +6,11 @@ from flask import Blueprint, current_app, jsonify, request
 from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 
-from ..schemas.conversation import ConversationCreate, ConversationResponse
+from ..schemas.conversation import (
+    ConversationCreate,
+    ConversationResponse,
+    ConversationUpdate,
+)
 from ..services.conversation_service import ConversationService
 from ..services.exceptions import AppNotFoundError, ConversationNotFoundError
 
@@ -66,6 +70,27 @@ def list_conversations(app_id: str):
 def get_conversation(conversation_id: str):
     try:
         conversation = _conversation_service().get_conversation(conversation_id)
+    except ConversationNotFoundError:
+        return _conversation_not_found()
+    return jsonify(_serialize_conversation(conversation))
+
+
+@conversations_bp.patch("/api/conversations/<conversation_id>")
+def update_conversation(conversation_id: str):
+    try:
+        payload = request.get_json()
+    except (BadRequest, UnsupportedMediaType):
+        payload = None
+    if not isinstance(payload, dict):
+        return jsonify(code="invalid_request", message="Invalid request"), 400
+    try:
+        data = ConversationUpdate.model_validate(payload)
+        conversation = _conversation_service().rename_conversation(
+            conversation_id,
+            data.name,
+        )
+    except ValidationError:
+        return jsonify(code="invalid_request", message="Invalid request"), 400
     except ConversationNotFoundError:
         return _conversation_not_found()
     return jsonify(_serialize_conversation(conversation))

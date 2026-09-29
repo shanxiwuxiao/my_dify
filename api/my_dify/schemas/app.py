@@ -14,6 +14,7 @@ class AppCreate(BaseModel):
     system_prompt: str = Field(default="", max_length=10000)
     model_name: str = Field(default="deepseek-flash", min_length=1, max_length=100)
     temperature: float = Field(default=0.7, ge=0, le=2)
+    provider_id: str | None = None
 
     @field_validator("name", "model_name", mode="before")
     @classmethod
@@ -33,6 +34,7 @@ class AppUpdate(BaseModel):
     system_prompt: str | None = Field(default=None, max_length=10000)
     model_name: str | None = Field(default=None, min_length=1, max_length=100)
     temperature: float | None = Field(default=None, ge=0, le=2)
+    provider_id: str | None = None
 
     @field_validator("name", "model_name", mode="before")
     @classmethod
@@ -47,7 +49,7 @@ class AppUpdate(BaseModel):
     def require_changes(self) -> "AppUpdate":
         if not self.model_fields_set:
             raise ValueError("at least one field is required")
-        if any(getattr(self, field_name) is None for field_name in self.model_fields_set):
+        if any(getattr(self, field_name) is None for field_name in self.model_fields_set if field_name != "provider_id"):
             raise ValueError("updated fields cannot be null")
         return self
 
@@ -63,5 +65,7 @@ class AppResponse(BaseModel):
     system_prompt: str
     model_name: str
     temperature: float
+    published_version: int | None
+    provider_id: str | None
     created_at: datetime
     updated_at: datetime

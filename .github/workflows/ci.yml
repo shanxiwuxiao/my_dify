@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.10"
+          enable-cache: true
+      - name: Install backend
+        run: uv sync --frozen
+      - name: Run backend tests
+        run: uv run pytest
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install frontend
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+      - name: Build frontend
+        working-directory: web
+        run: pnpm build
+      - name: Test frontend
+        working-directory: web
+        run: pnpm test
+      - name: Build production image
+        run: docker build -t my-dify:ci .

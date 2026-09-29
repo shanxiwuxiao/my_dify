@@ -7,8 +7,10 @@ from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 
 from ..schemas.app import AppCreate, AppResponse, AppUpdate
+from ..schemas.app_version import AppVersionResponse
 from ..services.app_service import AppService
 from ..services.exceptions import AppNotFoundError
+from ..services.model_provider_service import ProviderNotFoundError
 
 apps_bp = Blueprint("apps", __name__)
 
@@ -47,7 +49,10 @@ def create_application():
     except ValidationError:
         return _invalid_request()
 
-    app = _app_service().create_app(data)
+    try:
+        app = _app_service().create_app(data)
+    except ProviderNotFoundError:
+        return jsonify(code="provider_not_found", message="Model provider not found"), 404
     return jsonify(_serialize_app(app)), 201
 
 
@@ -79,6 +84,8 @@ def update_application(app_id: str):
         return _invalid_request()
     except AppNotFoundError:
         return _app_not_found()
+    except ProviderNotFoundError:
+        return jsonify(code="provider_not_found", message="Model provider not found"), 404
     return jsonify(_serialize_app(app))
 
 
@@ -89,3 +96,22 @@ def delete_application(app_id: str):
     except AppNotFoundError:
         return _app_not_found()
     return "", 204
+
+
+@apps_bp.post("/api/apps/<app_id>/publish")
+def publish_application(app_id: str):
+    try:
+        version = _app_service().publish(app_id)
+    except AppNotFoundError:
+        return _app_not_found()
+    return jsonify(AppVersionResponse.model_validate(version).model_dump(mode="json")), 201
+
+
+@apps_bp.get("/api/apps/<app_id>/versions")
+def list_application_versions(app_id: str):
+    try:
+        versions = _app_service().list_versions(app_id)
+    except AppNotFoundError:
+        return _app_not_found()
+    items = [AppVersionResponse.model_validate(item).model_dump(mode="json") for item in versions]
+    return jsonify(items=items, total=len(items))

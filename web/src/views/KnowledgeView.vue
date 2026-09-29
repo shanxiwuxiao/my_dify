@@ -1,0 +1,16 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { addDocument, createKnowledgeBase, deleteDocument, deleteKnowledgeBase, listDocuments, listKnowledgeBases, searchKnowledge } from '../api/knowledge'
+import type { KnowledgeBase, KnowledgeDocument, KnowledgeSource } from '../types/api'
+const bases=ref<KnowledgeBase[]>([]), selected=ref<KnowledgeBase>(), documents=ref<KnowledgeDocument[]>([]), results=ref<KnowledgeSource[]>([])
+const name=ref(''), description=ref(''), docName=ref(''), content=ref(''), query=ref(''), error=ref('')
+async function load(){bases.value=(await listKnowledgeBases()).items}
+async function choose(item:KnowledgeBase){selected.value=item; documents.value=(await listDocuments(item.id)).items; results.value=[]}
+async function create(){try{const item=await createKnowledgeBase(name.value,description.value);bases.value.unshift(item);name.value='';await choose(item)}catch(e){error.value=e instanceof Error?e.message:'创建失败'}}
+async function add(){if(!selected.value)return;try{documents.value.push(await addDocument(selected.value.id,docName.value,content.value));docName.value='';content.value=''}catch(e){error.value=e instanceof Error?e.message:'添加失败'}}
+async function search(){if(selected.value)results.value=(await searchKnowledge(selected.value.id,query.value)).items}
+async function removeDocument(item:KnowledgeDocument){if(!selected.value||!confirm(`删除文档“${item.name}”？`))return;await deleteDocument(selected.value.id,item.id);documents.value=documents.value.filter(x=>x.id!==item.id)}
+async function remove(item:KnowledgeBase){if(!confirm(`删除“${item.name}”？`))return;await deleteKnowledgeBase(item.id);bases.value=bases.value.filter(x=>x.id!==item.id);if(selected.value?.id===item.id)selected.value=undefined}
+onMounted(load)
+</script>
+<template><section class="page-heading"><div><h1>知识库</h1><p>添加文本资料，分块并检索后注入模型上下文。</p></div></section><p v-if="error" class="error-banner">{{error}}</p><div class="two-columns"><div><form class="card form-grid" @submit.prevent="create"><h2>新建知识库</h2><input v-model="name" required placeholder="名称"><input v-model="description" placeholder="描述"><button class="primary">创建</button></form><div class="list section"><article v-for="item in bases" :key="item.id" class="card list-item"><button class="conversation-link" @click="choose(item)">{{item.name}}</button><button class="danger" @click="remove(item)">删除</button></article></div></div><div v-if="selected"><h2>{{selected.name}}</h2><form class="card form-grid" @submit.prevent="add"><label>文档名称<input v-model="docName" required></label><label>文本内容<textarea v-model="content" required rows="8" /></label><button class="primary">添加并分块</button></form><div class="list section"><article v-for="item in documents" :key="item.id" class="card list-item"><span>{{item.name}}</span><button class="danger" @click="removeDocument(item)">删除</button></article></div><form class="composer section" @submit.prevent="search"><input v-model="query" required placeholder="测试检索"><button class="primary">检索</button></form><article v-for="item in results" :key="item.segment_id" class="card form-grid"><strong>{{item.document_name}} · {{item.score.toFixed(3)}}</strong><p>{{item.content}}</p></article></div></div></template>

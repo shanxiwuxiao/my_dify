@@ -1,0 +1,13 @@
+<script setup lang="ts">
+import {onMounted,ref} from 'vue'
+import {addCase,createDataset,getMonitoring,listDatasets,runEvaluation} from '../api/observability'
+import {listApps} from '../api/apps'
+import type {App} from '../types/api'
+const monitoring=ref<any>({}),datasets=ref<any[]>([]),apps=ref<App[]>([]),selected=ref(''),name=ref(''),input=ref(''),expected=ref(''),appId=ref(''),result=ref<any>(),error=ref('')
+async function load(){[monitoring.value,datasets.value,apps.value]=await Promise.all([getMonitoring(),listDatasets().then(x=>x.items),listApps().then(x=>x.items)])}
+async function create(){const item=await createDataset(name.value);datasets.value.push(item);selected.value=item.id;name.value=''}
+async function add(){try{await addCase(selected.value,input.value,expected.value);input.value='';expected.value='';await load()}catch(e){error.value=e instanceof Error?e.message:'添加失败'}}
+async function run(){try{result.value=await runEvaluation(selected.value,appId.value);monitoring.value=await getMonitoring()}catch(e){error.value=e instanceof Error?e.message:'运行失败'}}
+onMounted(load)
+</script>
+<template><section class="page-heading"><div><h1>评测与监控</h1><p>查看模型调用质量、耗时和回归测试结果。</p></div></section><p v-if="error" class="error-banner">{{error}}</p><div class="metric-grid"><div class="card form-grid"><strong>{{monitoring.total_calls||0}}</strong><span>模型调用</span></div><div class="card form-grid"><strong>{{monitoring.failed_calls||0}}</strong><span>失败</span></div><div class="card form-grid"><strong>{{monitoring.average_duration_ms||0}} ms</strong><span>平均耗时</span></div><div class="card form-grid"><strong>{{monitoring.output_chars||0}}</strong><span>输出字符</span></div></div><div class="two-columns section"><div><form class="card form-grid" @submit.prevent="create"><h2>创建评测集</h2><input v-model="name" required><button class="primary">创建</button></form><label class="section">评测集<select v-model="selected"><option v-for="x in datasets" :key="x.id" :value="x.id">{{x.name}}（{{x.case_count}}）</option></select></label></div><div><form class="card form-grid" @submit.prevent="add"><h2>添加用例</h2><input v-model="input" required placeholder="输入"><input v-model="expected" required placeholder="期望答案包含"><button :disabled="!selected" class="primary">添加</button></form><section class="card form-grid section"><h2>批量运行</h2><select v-model="appId"><option v-for="x in apps" :key="x.id" :value="x.id">{{x.name}}</option></select><button :disabled="!selected||!appId" class="primary" @click="run">运行评测</button><pre v-if="result">{{JSON.stringify(result,null,2)}}</pre></section></div></div></template>
